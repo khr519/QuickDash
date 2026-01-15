@@ -147,6 +147,7 @@ class Custom(VerticalGroup):
         if self.log_command == "":
             self.run_worker(self.stream_logs(), exclusive=True)
             return
+        self.run_worker(self.stream_log_command(), exclusive=True)
     
     async def stream_logs(self) -> None:
         client = docker.from_env()
