@@ -151,11 +151,15 @@ class Custom(VerticalGroup):
     async def stream_logs(self) -> None:
         client = docker.from_env()
         container = client.containers.get(self.container)
+
+        log = self.query_one(RichLog)
         
         for line in container.logs(stream=True, follow=True, tail=50):
-            self.write(line.decode().strip())
+            log.write(line.decode().strip())
 
     async def stream_log_command(self) -> None: # this is for Nextcloud AIO only for now.
+        log = self.query_one(RichLog)
+
         proc = await asyncio.create_subprocess_shell(
             self.log_command,
             stdout=asyncio.subprocess.PIPE,
@@ -167,11 +171,11 @@ class Custom(VerticalGroup):
             level = json_line.get("level", 0)
 
             if level >= 3: # Error
-                self.write(f"[red]{message}[/red]")
+                log.write(f"[red]{message}[/red]")
             elif level == 2: # Warning
-                self.write(f"[yellow]{message}[/yellow]")
+                log.write(f"[yellow]{message}[/yellow]")
             else: # Info
-                self.write(message)
+                log.write(message)
     
     def compose(self) -> ComposeResult:
         yield HorizontalGroup(
