@@ -11,6 +11,7 @@ from textual.color import Gradient
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
 from textual.reactive import reactive
+from textual import work
 
 import psutil
 import asyncio
@@ -40,9 +41,10 @@ class QuickDash(App):
         #yield Header()
         yield Bar()
         yield HorizontalGroup(
-            Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
+            # Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
             Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list"),
-            Custom("caddy")
+            # Custom("caddy")
+            Command("docker exec minecraft-mc-1 rcon-cli list")
         )
         #yield Footer()
 
@@ -145,18 +147,18 @@ class Custom(VerticalGroup):
     
     def on_mount(self) -> None:
         if self.log_command == "":
-            self.run_worker(self.stream_logs(), exclusive=True)
-            return
-        self.run_worker(self.stream_log_command(), exclusive=True)
+            self.stream_logs()
+        else:
+            self.run_worker(self.stream_log_command(), exclusive=True)
     
-    async def stream_logs(self) -> None:
+    @work(thread=True, exclusive=True)
+    def stream_logs(self) -> None:
         client = docker.from_env()
         container = client.containers.get(self.container)
-
         log = self.query_one(RichLog)
         
         for line in container.logs(stream=True, follow=True, tail=50):
-            log.write(line.decode().strip())
+            self.app.call_from_thread(log.write, line.decode().strip())
 
     async def stream_log_command(self) -> None: # this is for Nextcloud AIO only for now.
         log = self.query_one(RichLog)

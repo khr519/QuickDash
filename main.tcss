@@ -62,13 +62,16 @@ Bar {
                 width: 8;
             }
 
-Placeholder {
-    border: solid yellow;
+QuickDash HorizontalGroup {
     height: 1fr;
     width: 100%;
-    content-align: center middle;
 }
 
-Digits {
-    content-align: center middle;
-}
+    Custom {
+        height: 1fr;
+        width: 1fr;
+    }
+
+    Command {
+        color: orange;
+    }
