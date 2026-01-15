@@ -68,10 +68,12 @@ QuickDash HorizontalGroup {
 }
 
     Custom {
+        margin-top: 1;
         height: 1fr;
         width: 1fr;
     }
 
     Command {
-        color: orange;
+        margin-left: 2;
+        color: green;
     }

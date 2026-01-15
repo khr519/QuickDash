@@ -43,7 +43,7 @@ class QuickDash(App):
         yield Bar()
         yield HorizontalGroup(
             # Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
-            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list", log_ignore="RCON"),
+            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list", log_ignore="RCON", cmd_mod="o.split(' ')[2]+'/'+o.split(' ')[7]" ),
             # Custom("caddy")
         )
         #yield Footer()
@@ -139,18 +139,19 @@ class Cpu(VerticalGroup):
 # Customizable widget
 class Custom(VerticalGroup):
 
-    def __init__(self, container:str, command:str="", log_command:str="", log_ignore:str="") -> None:
+    def __init__(self, container:str, command:str|None=None, cmd_mod:str|None=None, log_command:str|None=None, log_ignore:str|None=None) -> None:
         super().__init__()
         self.container = container
         self.command = command
+        self.cmd_mod = cmd_mod
         self.log_command = log_command
-        self.log_ignore = None if log_ignore == "" else log_ignore
+        self.log_ignore = log_ignore
     
     def on_mount(self) -> None:
-        if self.log_command == "":
-            self.stream_logs()
-        else:
+        if self.log_command:
             self.run_worker(self.stream_log_command(), exclusive=True)
+        else:
+            self.stream_logs()
     
     @work(thread=True, exclusive=True)
     def stream_logs(self) -> None:
@@ -194,17 +195,18 @@ class Custom(VerticalGroup):
     def compose(self) -> ComposeResult:
         yield HorizontalGroup(
             Label(self.container),
-            Command(self.command),
+            Command(self.command, self.cmd_mod),
         )
         yield RichLog()
 
 class Command(Label):
-    def __init__(self, command:str):
+    def __init__(self, command:str|None, cmd_mod:str|None=None) -> None:
         super().__init__()
         self.command = command
+        self.cmd_mod = cmd_mod
     
     def on_mount(self) -> None:
-        if self.command == "": return
+        if not self.command: return
         self.set_interval(5, self.update_content)
     
     async def update_content(self) -> None:
@@ -214,8 +216,10 @@ class Command(Label):
             stderr=asyncio.subprocess.STDOUT,
         )
         stdout, _ = await proc.communicate()
-        output = stdout.decode().strip()
-        self.update(output)
+        o = stdout.decode().strip()
+        if self.cmd_mod:
+            o = eval(self.cmd_mod)
+        self.update(o)
 
 if __name__ == "__main__":
     app = QuickDash()
