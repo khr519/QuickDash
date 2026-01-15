@@ -8,12 +8,14 @@
 
 from textual.app import App, ComposeResult
 from textual.color import Gradient
-from textual.containers import HorizontalGroup, VerticalGroup, Center, Middle
-from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder
+from textual.containers import HorizontalGroup, VerticalGroup
+from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
 from textual.reactive import reactive
 
 import psutil
 import asyncio
+import docker
+import json
 
 gradient = Gradient.from_colors(
     "#663399",
@@ -54,9 +56,9 @@ class Bar(HorizontalGroup):
 class Ram(VerticalGroup):
     
     def on_mount(self) -> None:
-        self.set_interval(1.0, self.update_stats)
+        self.set_interval(2, self.update_content)
     
-    async def update_stats(self) -> None:
+    async def update_content(self) -> None:
         ram = psutil.virtual_memory()
 
         usage_label = self.query_one(Digits)
@@ -78,9 +80,9 @@ class Disk(VerticalGroup):
         self.type = type
 
     def on_mount(self) -> None:
-        self.set_interval(1.0, self.update_stats)
+        self.set_interval(10, self.update_content)
     
-    async def update_stats(self) -> None:
+    async def update_content(self) -> None:
         disk = psutil.disk_usage(self.path)
 
         usage_label = self.query_one(Digits)
@@ -98,9 +100,9 @@ class Disk(VerticalGroup):
 class Cpu(VerticalGroup):
 
     def on_mount(self) -> None:
-        self.set_interval(1, self.update_stats)
+        self.set_interval(2, self.update_content)
     
-    async def update_stats(self) -> None:
+    async def update_content(self) -> None:
         usage = psutil.cpu_percent(interval=0.1, percpu=False) # TODO: per core later
         freq = psutil.cpu_freq().current
         temps = psutil.sensors_temperatures()
@@ -128,14 +130,70 @@ class Cpu(VerticalGroup):
         )
         yield ProgressBar(gradient=gradient)
 
-# Log widget
-class Log: pass
+# Customizable widget
+class Custom(VerticalGroup):
 
-# Custom command widgets
-class Custom:
-    def __init__(self, id:int):
-        self.id = id
-        self.name = "New Widget"
+    def __init__(self, container:str, command:str="", log_command:str="") -> None:
+        super().__init__()
+        self.container = container
+        self.command = command
+        self.log_command = log_command
+    
+    def on_mount(self) -> None:
+        if self.log_command == "":
+            self.run_worker(self.stream_logs(), exclusive=True)
+            return
+    
+    async def stream_logs(self) -> None:
+        client = docker.from_env()
+        container = client.containers.get(self.container)
+        
+        for line in container.logs(stream=True, follow=True, tail=50):
+            self.write(line.decode().strip())
+
+    async def stream_log_command(self) -> None: # this is for Nextcloud AIO only for now.
+        proc = await asyncio.create_subprocess_shell(
+            self.log_command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        async for line in proc.stdout:
+            json_line = json.loads(line.decode().strip())
+            message = json_line.get("message", "")
+            level = json_line.get("level", 0)
+
+            if level >= 3: # Error
+                self.write(f"[red]{message}[/red]")
+            elif level == 2: # Warning
+                self.write(f"[yellow]{message}[/yellow]")
+            else: # Info
+                self.write(message)
+    
+    def compose(self) -> ComposeResult:
+        yield HorizontalGroup(
+            Label(self.container),
+            Command(self.command),
+        )
+        yield RichLog()
+
+class Command(Label):
+    def __init__(self, command:str):
+        super().__init__()
+        self.command = command
+    
+    def on_mount(self) -> None:
+        if self.command == "": return
+        self.set_interval(5, self.update_content)
+    
+    async def update_content(self) -> None:
+        proc = await asyncio.create_subprocess_shell(
+            self.command,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode().strip()
+        self.update(output)
 
 if __name__ == "__main__":
     app = QuickDash()
