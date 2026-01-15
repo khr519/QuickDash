@@ -1,9 +1,24 @@
 Bar {
     height: 1fr;
-    max-height: 10;
+    max-height: 7;
     width: 100%;
     content-align: center middle;
 }
+
+        Bar Label {
+            width: 100%;
+            content-align: center middle;
+        }
+
+        Bar Digits {
+            width: 14;
+            text-align: center;
+        }
+
+        Bar ProgressBar {
+            width: 100%;
+            content-align: center middle;
+        }
 
     Ram {
         width: 16;
@@ -25,36 +40,34 @@ Bar {
         border: solid blue;
     }
 
-        Bar Label {
-            width: 100%;
-            content-align: center middle;
-        }
-
-        Bar Digits {
-            width: 100%;
-            text-align: center;
-        }
-
-        Bar ProgressBar {
-            width: 100%;
-            content-align: center middle;
-        }
-
     Cpu {
-        width: 70%;
-        height: 100%;
+        width: 21;
+        height: 7;
         content-align: center middle;
-        text-align: center;
-        background: red;
+        border: solid red;
     }
+
+        Cpu HorizontalGroup {
+            height: 3;
+            width: 100%;
+        }
+
+            Cpu Digits {
+                width: 11;
+                text-align: center;
+            }
+
+            Cpu VerticalGroup {
+                margin-top: 1;
+                width: 8;
+            }
 
 Placeholder {
     border: solid yellow;
-    height: 5fr;
+    height: 1fr;
     width: 100%;
     content-align: center middle;
 }
-
 
 Digits {
     content-align: center middle;

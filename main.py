@@ -41,6 +41,16 @@ class QuickDash(App):
         #yield Footer()
 
 # Top bar
+class Bar(HorizontalGroup):
+    def compose(self) -> ComposeResult:
+        yield Ram()
+        yield HorizontalGroup(
+            Disk("/", "Root"),
+            Disk("/home", "Home"),
+            id="disks" #TODO: make dynamic.
+        )
+        yield Cpu()
+
 class Ram(VerticalGroup):
     
     def on_mount(self) -> None:
@@ -48,62 +58,75 @@ class Ram(VerticalGroup):
     
     async def update_stats(self) -> None:
         ram = psutil.virtual_memory()
-        progress_bar = self.query_one(ProgressBar)
-        progress_bar.update(
-            total=ram.total,
-            progress=ram.used,
-        )
 
-        usage_label = self.query_one("#ram-usage", Digits)
+        usage_label = self.query_one(Digits)
         usage_label.update(f"{(ram.used / (1024**3)):.1f}G")
+
+        usage_bar = self.query_one(ProgressBar)
+        usage_bar.update(total=ram.total, progress=ram.used)
 
     def compose(self) -> ComposeResult:
         yield Label("RAM")
-        yield Digits("", id="ram-usage")
+        yield Digits()
         yield ProgressBar(gradient=gradient)
 
 class Disk(VerticalGroup):
 
+    def __init__(self, path:str, type:str) -> None:
+        super().__init__()
+        self.path = path
+        self.type = type
+
     def on_mount(self) -> None:
-        progress_bar = self.query_one(ProgressBar)
-        progress_bar.update(
-            total=240,
-            progress=40.2
-        )
+        self.set_interval(1.0, self.update_stats)
+    
+    async def update_stats(self) -> None:
+        disk = psutil.disk_usage(self.path)
+
+        usage_label = self.query_one(Digits)
+        if disk.used // (1024**4): usage_label.update(f"{(disk.used / (1024**4)):.1f}T")
+        else: usage_label.update(f"{(disk.used / (1024**3)):.1f}G")
+
+        usage_bar = self.query_one(ProgressBar)
+        usage_bar.update(total=disk.total, progress=disk.used)
     
     def compose(self) -> ComposeResult:
-        yield Label("SSD")
-        yield Digits("940.2T")
+        yield Label(self.type)
+        yield Digits()
         yield ProgressBar(gradient=gradient)
 
-class Cpu(Digits):
-    cpu = reactive({})
+class Cpu(VerticalGroup):
 
     def on_mount(self) -> None:
         self.set_interval(1, self.update_stats)
     
     async def update_stats(self) -> None:
         usage = psutil.cpu_percent(interval=0.1, percpu=False) # TODO: per core later
-        freq = psutil.cpu_freq()
+        freq = psutil.cpu_freq().current
         temps = psutil.sensors_temperatures()
-        
-        self.update(f"{usage:.1f}%")
-        
-        self.cpu = {
-            "cores": usage,
-            "freq": freq.current if freq else 0,
-            "temp": temps
-        }
 
-class Bar(HorizontalGroup):
+        usage_label = self.query_one(Digits)
+        usage_label.update(f"{usage:.1f}%")
+        
+        freq_label = self.query_one("#cpu-freq", Label)
+        freq_label.update(f"{freq:.0f}MHz")
+
+        temp_label = self.query_one("#cpu-temp", Label)
+        temp_label.update(f"{temps['coretemp'][0].current:.1f}°C")
+
+        usage_bar = self.query_one(ProgressBar)
+        usage_bar.update(total=100, progress=usage)
+    
     def compose(self) -> ComposeResult:
-        yield Ram()
+        yield Label("CPU")
         yield HorizontalGroup(
-            Disk(),
-            Disk(),
-            id="disks"
+            Digits(),
+            VerticalGroup(
+                Label(id="cpu-freq"),
+                Label(id="cpu-temp"),
+            ),
         )
-        yield Cpu()
+        yield ProgressBar(gradient=gradient)
 
 # Log widget
 class Log: pass
