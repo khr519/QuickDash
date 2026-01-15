@@ -17,6 +17,7 @@ import psutil
 import asyncio
 import docker
 import json
+import os
 
 gradient = Gradient.from_colors(
     "#663399",
@@ -42,9 +43,8 @@ class QuickDash(App):
         yield Bar()
         yield HorizontalGroup(
             # Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
-            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list"),
+            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list", log_ignore="RCON"),
             # Custom("caddy")
-            Command("docker exec minecraft-mc-1 rcon-cli list")
         )
         #yield Footer()
 
@@ -139,11 +139,12 @@ class Cpu(VerticalGroup):
 # Customizable widget
 class Custom(VerticalGroup):
 
-    def __init__(self, container:str, command:str="", log_command:str="") -> None:
+    def __init__(self, container:str, command:str="", log_command:str="", log_ignore:str="") -> None:
         super().__init__()
         self.container = container
         self.command = command
         self.log_command = log_command
+        self.log_ignore = None if log_ignore == "" else log_ignore
     
     def on_mount(self) -> None:
         if self.log_command == "":
@@ -157,8 +158,18 @@ class Custom(VerticalGroup):
         container = client.containers.get(self.container)
         log = self.query_one(RichLog)
         
-        for line in container.logs(stream=True, follow=True, tail=50):
-            self.app.call_from_thread(log.write, line.decode().strip())
+        # for line in container.logs(stream=True, follow=True, tail=50):
+        #     self.app.call_from_thread(log.write, line.decode().strip())
+
+        stream = container.logs(stream=True, follow=True, tail=50)
+        buffer = b""
+        for chunk in stream:
+            buffer += chunk
+            while b"\n" in buffer:
+                line, buffer = buffer.split(b"\n", 1)
+                if self.log_ignore and self.log_ignore in line.decode():
+                    continue
+                log.write(line.decode().strip())
 
     async def stream_log_command(self) -> None: # this is for Nextcloud AIO only for now.
         log = self.query_one(RichLog)
