@@ -39,7 +39,11 @@ class QuickDash(App):
     def compose(self) -> ComposeResult:
         #yield Header()
         yield Bar()
-        yield Placeholder()
+        yield HorizontalGroup(
+            Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
+            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list"),
+            Custom("caddy")
+        )
         #yield Footer()
 
 # Top bar
