@@ -12,11 +12,9 @@ from textual.containers import HorizontalGroup, VerticalGroup
 from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
 from textual.reactive import reactive
 from textual import work
-from textual.message import Message
 
 import psutil
 import asyncio
-import docker
 import json
 import os
 
@@ -42,22 +40,26 @@ class QuickDash(App):
     CSS_PATH = "main.tcss"
     settings = reactive({})
 
-    class Load(Message):
-        pass
+    def __init__(self):
+        super().__init__()
+        with open("settings.json", "r") as p:
+            self.settings = json.load(p)
 
     def on_mount(self):
-        self.live_load()
+        self.run_worker(self.live_load())
     
-    @work(thread=True)
     async def live_load(self):
         async for changes in awatch("settings.json"):
-            self.call_from_thread(self.load_settings)
+            print(changes)
+            self.load_settings()
 
     def load_settings(self):
         with open("settings.json", "r") as p:
             self.settings = json.load(p)
-        print(self.settings)
-        self.post_message(self.Load())
+        for widget in self.query(Custom):
+            widget.load()
+        for widget in self.query(Command):
+            widget.load()
 
     def compose(self) -> ComposeResult:
         #yield Header()
@@ -163,57 +165,39 @@ class Custom(VerticalGroup):
         self.load()
     
     def on_mount(self):
-        if self.log_command:
-            self.run_worker(self.stream_log_command(), exclusive=True)
-        else:
-            self.stream_logs()
-
-    def on_quickdash_load(self, _):
-        self.load()
+        self.run_worker(self.stream_logs(), exclusive=True)
     
     def load(self):
         setting = self.app.settings["custom"][self.name]
         self.container = setting["container"]
         self.log_ignore = setting.get("log", {}).get("ignore", [])
         self.log_command = setting.get("log", {}).get("command", None)
+        self.log_parse = setting.get("log", {}).get("parse", "line")
 
-
-    
-    @work(thread=True, exclusive=True)
-    def stream_logs(self):
-        client = docker.from_env()
-        container = client.containers.get(self.container)
+    async def stream_logs(self):
         log = self.query_one(RichLog)
 
-        stream = container.logs(stream=True, follow=True, tail=50)
-        buffer = b""
-        for chunk in stream:
-            buffer += chunk
-            while b"\n" in buffer:
-                line, buffer = buffer.split(b"\n", 1)
+        if self.log_command:
+            proc = await asyncio.create_subprocess_shell(
+                self.log_command,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+        else:
+            proc = await asyncio.create_subprocess_shell(
+                f"docker logs -f {self.container}",
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.STDOUT,
+            )
+        try:
+            async for line in proc.stdout:
                 line = line.decode().strip()
-                if sum([(i in line) for i in self.log_ignore]):
-                    continue
-
-    async def stream_log_command(self): # NOTE: this is for Nextcloud AIO only for now.
-        log = self.query_one(RichLog)
-
-        proc = await asyncio.create_subprocess_shell(
-            self.log_command,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.STDOUT,
-        )
-        async for line in proc.stdout:
-            json_line = json.loads(line.decode().strip())
-            message = json_line.get("message", "")
-            level = json_line.get("level", 0)
-
-            if level >= 3: # Error
-                log.write(f"[red]{message}[/red]")
-            elif level == 2: # Warning
-                log.write(f"[yellow]{message}[/yellow]")
-            else: # Info
-                log.write(message)
+                if self.log_parse: line = eval(self.log_parse)
+                if any(ignore in line for ignore in self.log_ignore): continue
+                log.write(line)
+        except asyncio.CancelledError:
+            proc.terminate()
+            raise
     
     def compose(self) -> ComposeResult:
         yield HorizontalGroup(
@@ -233,9 +217,6 @@ class Command(Label):
         if not self.exec: return
         self.set_interval(5, self.update_content)
     
-    def on_quickdash_load(self, _):
-        self.load()
-    
     def load(self):
         setting = self.app.settings["custom"][self.parent_name]
         self.exec = setting.get("command", {}).get("exec", None)
@@ -248,12 +229,11 @@ class Command(Label):
             stderr=asyncio.subprocess.STDOUT,
         )
         stdout, _ = await proc.communicate()
-        o = stdout.decode().strip()
+        output = stdout.decode().strip()
         if self.parse:
-            o = eval(self.parse)
-        self.update(o)
+            output = eval(self.parse)
+        self.update(output)
 
 if __name__ == "__main__":
     app = QuickDash()
-    app.load_settings()
     app.run()

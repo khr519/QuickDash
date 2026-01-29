@@ -15,7 +15,7 @@
 
             "command" : {
                 "exec" : "rcon-cli list",
-                "parse" : "o.split(' ')[2]+'/'+o.split(' ')[7]"
+                "parse" : "output.split(' ')[2]+'/'+output.split(' ')[7]"
             },
 
             "log" : {
@@ -24,13 +24,18 @@
         },
 
         "Caddy" : {
-            "container" : "caddy"
+            "container" : "caddy",
+
+            "log" : {
+                "parse" : "json.loads(line)['msg']"
+            }
         },
         "Nextcloud" : {
             "container" : "actually this isnt needed here",
 
             "log" : {
-                "command" : "docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"
+                "command" : "docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log",
+                "parse" : "json.loads(line)['message']"
             }
 
         }
