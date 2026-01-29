@@ -12,12 +12,15 @@ from textual.containers import HorizontalGroup, VerticalGroup
 from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
 from textual.reactive import reactive
 from textual import work
+from textual.message import Message
 
 import psutil
 import asyncio
 import docker
 import json
 import os
+
+from watchfiles import awatch
 
 gradient = Gradient.from_colors(
     "#663399",
@@ -37,14 +40,30 @@ gradient = Gradient.from_colors(
 # Main window
 class QuickDash(App):
     CSS_PATH = "main.tcss"
+    settings = reactive({})
+
+    class Load(Message):
+        pass
+
+    def on_mount(self):
+        self.live_load()
+    
+    @work(thread=True)
+    async def live_load(self):
+        async for changes in awatch("settings.json"):
+            self.call_from_thread(self.load_settings)
+
+    def load_settings(self):
+        with open("settings.json", "r") as p:
+            self.settings = json.load(p)
+        print(self.settings)
+        self.post_message(self.Load())
 
     def compose(self) -> ComposeResult:
         #yield Header()
         yield Bar()
         yield HorizontalGroup(
-            # Custom("nextcloud-aio", log_command="docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"),
-            Custom("minecraft-mc-1", command="docker exec minecraft-mc-1 rcon-cli list", log_ignore="RCON", cmd_mod="o.split(' ')[2]+'/'+o.split(' ')[7]" ),
-            # Custom("caddy")
+            *[Custom(p) for p in (self.settings["custom"]).keys()]
         )
         #yield Footer()
 
@@ -61,10 +80,10 @@ class Bar(HorizontalGroup):
 
 class Ram(VerticalGroup):
     
-    def on_mount(self) -> None:
+    def on_mount(self):
         self.set_interval(2, self.update_content)
     
-    async def update_content(self) -> None:
+    async def update_content(self):
         ram = psutil.virtual_memory()
 
         usage_label = self.query_one(Digits)
@@ -80,15 +99,15 @@ class Ram(VerticalGroup):
 
 class Disk(VerticalGroup):
 
-    def __init__(self, path:str, type:str) -> None:
+    def __init__(self, path:str, type:str):
         super().__init__()
         self.path = path
         self.type = type
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         self.set_interval(10, self.update_content)
     
-    async def update_content(self) -> None:
+    async def update_content(self):
         disk = psutil.disk_usage(self.path)
 
         usage_label = self.query_one(Digits)
@@ -105,10 +124,10 @@ class Disk(VerticalGroup):
 
 class Cpu(VerticalGroup):
 
-    def on_mount(self) -> None:
+    def on_mount(self):
         self.set_interval(2, self.update_content)
     
-    async def update_content(self) -> None:
+    async def update_content(self):
         usage = psutil.cpu_percent(interval=0.1, percpu=False) # TODO: per core later
         freq = psutil.cpu_freq().current
         temps = psutil.sensors_temperatures()
@@ -139,28 +158,32 @@ class Cpu(VerticalGroup):
 # Customizable widget
 class Custom(VerticalGroup):
 
-    def __init__(self, container:str, command:str|None=None, cmd_mod:str|None=None, log_command:str|None=None, log_ignore:str|None=None) -> None:
-        super().__init__()
-        self.container = container
-        self.command = command
-        self.cmd_mod = cmd_mod
-        self.log_command = log_command
-        self.log_ignore = log_ignore
+    def __init__(self, name:str):
+        super().__init__(name=name)
+        self.load()
     
-    def on_mount(self) -> None:
+    def on_mount(self):
         if self.log_command:
             self.run_worker(self.stream_log_command(), exclusive=True)
         else:
             self.stream_logs()
+
+    def on_quickdash_load(self, _):
+        self.load()
+    
+    def load(self):
+        setting = self.app.settings["custom"][self.name]
+        self.container = setting["container"]
+        self.log_ignore = setting.get("log", {}).get("ignore", [])
+        self.log_command = setting.get("log", {}).get("command", None)
+
+
     
     @work(thread=True, exclusive=True)
-    def stream_logs(self) -> None:
+    def stream_logs(self):
         client = docker.from_env()
         container = client.containers.get(self.container)
         log = self.query_one(RichLog)
-        
-        # for line in container.logs(stream=True, follow=True, tail=50):
-        #     self.app.call_from_thread(log.write, line.decode().strip())
 
         stream = container.logs(stream=True, follow=True, tail=50)
         buffer = b""
@@ -168,11 +191,11 @@ class Custom(VerticalGroup):
             buffer += chunk
             while b"\n" in buffer:
                 line, buffer = buffer.split(b"\n", 1)
-                if self.log_ignore and self.log_ignore in line.decode():
+                line = line.decode().strip()
+                if sum([(i in line) for i in self.log_ignore]):
                     continue
-                log.write(line.decode().strip())
 
-    async def stream_log_command(self) -> None: # this is for Nextcloud AIO only for now.
+    async def stream_log_command(self): # NOTE: this is for Nextcloud AIO only for now.
         log = self.query_one(RichLog)
 
         proc = await asyncio.create_subprocess_shell(
@@ -194,33 +217,43 @@ class Custom(VerticalGroup):
     
     def compose(self) -> ComposeResult:
         yield HorizontalGroup(
-            Label(self.container),
-            Command(self.command, self.cmd_mod),
+            Label(self.name),
+            Command(self.name, self.container),
         )
         yield RichLog()
 
 class Command(Label):
-    def __init__(self, command:str|None, cmd_mod:str|None=None) -> None:
+    def __init__(self, parent_name:str, parent_container:str):
         super().__init__()
-        self.command = command
-        self.cmd_mod = cmd_mod
-    
-    def on_mount(self) -> None:
-        if not self.command: return
+        self.parent_name = parent_name
+        self.parent_container = parent_container
+        self.load()
+
+    def on_mount(self):
+        if not self.exec: return
         self.set_interval(5, self.update_content)
     
-    async def update_content(self) -> None:
+    def on_quickdash_load(self, _):
+        self.load()
+    
+    def load(self):
+        setting = self.app.settings["custom"][self.parent_name]
+        self.exec = setting.get("command", {}).get("exec", None)
+        self.parse = setting.get("command", {}).get("parse", None)
+    
+    async def update_content(self):
         proc = await asyncio.create_subprocess_shell(
-            self.command,
+            f"docker exec {self.parent_container} {self.exec}",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )
         stdout, _ = await proc.communicate()
         o = stdout.decode().strip()
-        if self.cmd_mod:
-            o = eval(self.cmd_mod)
+        if self.parse:
+            o = eval(self.parse)
         self.update(o)
 
 if __name__ == "__main__":
     app = QuickDash()
+    app.load_settings()
     app.run()

@@ -1,0 +1,39 @@
+{
+    "disks" : [
+        {
+            "name" : "SSD",
+            "path" : "/dev/nvme0n1"
+        },
+        {
+            "name" : "HDD",
+            "path" : "/dev/sda"
+        }
+    ],
+    "custom" : {
+        "Minecraft" : {
+            "container" : "minecraft-mc-1",
+
+            "command" : {
+                "exec" : "rcon-cli list",
+                "parse" : "o.split(' ')[2]+'/'+o.split(' ')[7]"
+            },
+
+            "log" : {
+                "ignore" : ["RCON"]
+            }
+        },
+
+        "Caddy" : {
+            "container" : "caddy"
+        },
+        "Nextcloud" : {
+            "container" : "actually this isnt needed here",
+
+            "log" : {
+                "command" : "docker exec -it nextcloud-aio-nextcloud tail data/nextcloud.log"
+            }
+
+        }
+    }
+}
+    
