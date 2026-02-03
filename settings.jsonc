@@ -2,11 +2,11 @@
     "disks" : [
         {
             "name" : "SSD",
-            "path" : "/dev/nvme0n1"
+            "path" : "/"
         },
         {
             "name" : "HDD",
-            "path" : "/dev/sda"
+            "path" : "/data"
         }
     ],
     "custom" : {
@@ -15,7 +15,7 @@
 
             "command" : {
                 "exec" : "rcon-cli list",
-                "parse" : "output.split(' ')[2]+'/'+output.split(' ')[7]"
+                "parse" : "'online: '+output.split(' ')[2]+'/'+output.split(' ')[7]"
             },
 
             "log" : {

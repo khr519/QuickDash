@@ -19,7 +19,7 @@ import json
 from jsonc_parser.parser import JsoncParser
 import os
 
-from watchfiles import watch
+from watchfiles import awatch
 
 gradient = Gradient.from_colors(
     "#663399",
@@ -46,12 +46,17 @@ class QuickDash(App):
         self.load_settings()
 
     def on_mount(self):
-        self.run_worker(self.live_load, thread=True)
+        self.run_worker(self.live_load())
     
-    def live_load(self):
-        for changes in watch("settings.jsonc"):
-            print(changes)
-            self.call_from_thread(self.load_settings)
+    async def live_load(self):
+        async for changes in awatch("."):
+            # ok turns out editors sometimes delete and recreate files,
+            # instead of editing...
+            # so i think we have to watch the entire directory :(
+            for _, path in changes:
+                if path.endswith("settings.jsonc"):
+                    self.load_settings()
+                    break
 
     def load_settings(self):
         self.settings = JsoncParser.parse_file("settings.jsonc")
