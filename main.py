@@ -12,7 +12,6 @@ from textual.color import Gradient
 from textual.containers import HorizontalGroup, VerticalGroup
 from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
 from textual.reactive import reactive
-from textual import work
 
 import psutil
 import asyncio
@@ -40,6 +39,9 @@ gradient = Gradient.from_colors(
 class QuickDash(App):
     CSS_PATH = "main.tcss"
     settings = reactive({})
+    
+    # debug
+    live_load_out = reactive("", recompose=True)
 
     def __init__(self):
         super().__init__()
@@ -50,21 +52,21 @@ class QuickDash(App):
         self.run_worker(self.live_load())
     
     async def live_load(self):
-        async for changes in awatch("settings.json"):
-            print(changes)
-            self.load_settings()
+        try:
+            async for changes in awatch("settings.json"):
+                self.live_load_out = changes
+                self.load_settings()
+        except Exception as e:
+            self.live_load_out = e
 
     def load_settings(self):
         with open("settings.json", "r") as p:
             self.settings = json.load(p)
-        for widget in self.query(Custom):
-            widget.load()
-        for widget in self.query(Command):
-            widget.load()
 
     def compose(self) -> ComposeResult:
         #yield Header()
         yield Bar()
+        yield Label(f"Live Load: {self.live_load_out}")
         yield HorizontalGroup(
             *[Custom(p) for p in (self.settings["custom"]).keys()]
         )
@@ -75,9 +77,7 @@ class Bar(HorizontalGroup):
     def compose(self) -> ComposeResult:
         yield Ram()
         yield HorizontalGroup(
-            Disk("/", "Root"),
-            Disk("/home", "Home"),
-            id="disks" #TODO: make dynamic.
+            *[Disk(*p.items()) for p in (self.settings["disks"])]
         )
         yield Cpu()
 
@@ -102,10 +102,10 @@ class Ram(VerticalGroup):
 
 class Disk(VerticalGroup):
 
-    def __init__(self, path:str, type:str):
+    def __init__(self, name:str, path:str):
         super().__init__()
         self.path = path
-        self.type = type
+        self.name = name
 
     def on_mount(self):
         self.set_interval(10, self.update_content)
@@ -121,7 +121,7 @@ class Disk(VerticalGroup):
         usage_bar.update(total=disk.total, progress=disk.used)
     
     def compose(self) -> ComposeResult:
-        yield Label(self.type)
+        yield Label(self.name)
         yield Digits()
         yield ProgressBar(gradient=gradient)
 
@@ -167,6 +167,7 @@ class Custom(VerticalGroup):
     
     def on_mount(self):
         self.run_worker(self.stream_logs(), exclusive=True)
+        self.watch(self.app, "settings", self.load)
     
     def load(self):
         setting = self.app.settings["custom"][self.name]
@@ -217,6 +218,7 @@ class Command(Label):
     def on_mount(self):
         if not self.exec: return
         self.set_interval(5, self.update_content)
+        self.watch(self.app, "settings", self.load)
     
     def load(self):
         setting = self.app.settings["custom"][self.parent_name]
