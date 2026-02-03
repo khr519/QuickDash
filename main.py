@@ -15,10 +15,10 @@ from textual.reactive import reactive
 
 import psutil
 import asyncio
-import json
+from jsonc_parser.parser import JsoncParser
 import os
 
-from watchfiles import awatch
+from watchfiles import watch
 
 gradient = Gradient.from_colors(
     "#663399",
@@ -39,34 +39,25 @@ gradient = Gradient.from_colors(
 class QuickDash(App):
     CSS_PATH = "main.tcss"
     settings = reactive({})
-    
-    # debug
-    live_load_out = reactive("", recompose=True)
 
     def __init__(self):
         super().__init__()
-        with open("settings.json", "r") as p:
-            self.settings = json.load(p)
+        self.load_settings()
 
     def on_mount(self):
-        self.run_worker(self.live_load())
+        self.run_worker(self.live_load, thread=True)
     
-    async def live_load(self):
-        try:
-            async for changes in awatch("settings.json"):
-                self.live_load_out = changes
-                self.load_settings()
-        except Exception as e:
-            self.live_load_out = e
+    def live_load(self):
+        for changes in watch("settings.json"):
+            print(changes)
+            self.call_from_thread(self.load_settings)
 
     def load_settings(self):
-        with open("settings.json", "r") as p:
-            self.settings = json.load(p)
+        self.settings = JsoncParser.parse_file("settings.jsonc")
 
     def compose(self) -> ComposeResult:
         #yield Header()
         yield Bar()
-        yield Label(f"Live Load: {self.live_load_out}")
         yield HorizontalGroup(
             *[Custom(p) for p in (self.settings["custom"]).keys()]
         )
@@ -77,7 +68,7 @@ class Bar(HorizontalGroup):
     def compose(self) -> ComposeResult:
         yield Ram()
         yield HorizontalGroup(
-            *[Disk(*p.items()) for p in (self.settings["disks"])]
+            *[Disk(*map(lambda i:i[1],p.items())) for p in (self.app.settings["disks"])]
         )
         yield Cpu()
 
@@ -103,9 +94,8 @@ class Ram(VerticalGroup):
 class Disk(VerticalGroup):
 
     def __init__(self, name:str, path:str):
-        super().__init__()
+        super().__init__(name=name)
         self.path = path
-        self.name = name
 
     def on_mount(self):
         self.set_interval(10, self.update_content)
