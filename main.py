@@ -15,6 +15,7 @@ from textual.reactive import reactive
 
 import psutil
 import asyncio
+import json
 from jsonc_parser.parser import JsoncParser
 import os
 
