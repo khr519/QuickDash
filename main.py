@@ -48,7 +48,7 @@ class QuickDash(App):
         self.run_worker(self.live_load, thread=True)
     
     def live_load(self):
-        for changes in watch("settings.json"):
+        for changes in watch("settings.jsonc"):
             print(changes)
             self.call_from_thread(self.load_settings)
 
