@@ -1,3 +1,8 @@
+Widget {
+    background: #1a1b26;
+    color: #c0caf5;
+}
+
 Bar {
     height: 1fr;
     max-height: 7;
@@ -13,6 +18,7 @@ Bar {
         Bar Digits {
             width: 14;
             text-align: center;
+            color: #ffb86c
         }
 
         Bar ProgressBar {
@@ -24,27 +30,30 @@ Bar {
         width: 16;
         height: 7;
         content-align: center middle;
-        border: solid green;
+        border: round #bd93f9;
     }
 
     #disks {
         width: auto;
         height: 7;
         content-align: center middle;
+        padding-left: 1;
+        border: round #bd93f9;
+        
     }
     
     Disk {
-        width: 16;
-        height: 7;
+        width: 14;
+        height: 5;
+        margin-right: 1;
         content-align: center middle;
-        border: solid blue;
     }
 
     Cpu {
         width: 21;
         height: 7;
         content-align: center middle;
-        border: solid red;
+        border: round #bd93f9;
     }
 
         Cpu HorizontalGroup {
@@ -63,17 +72,42 @@ Bar {
             }
 
 QuickDash TabbedContent {
+    margin-top: 1;
     height: 1fr;
     width: 100%;
 }
 
+    Tabs {
+        height: 2;
+    }
+
+    Tab {
+        color: #6272a4;
+    }
+
+    Tab.-active {
+        color: #50fa7b;
+        text-style: bold;
+    }
+
+    .underline--bar {
+        # display: none;
+        color: #ff79c6;
+        background: #6272a4;
+    }
+
     Custom {
-        margin-top: 1;
         height: 1fr;
         width: 1fr;
     }
+        RichLog {
+            border: round #6272a4;
+            scrollbar-background: transparent;
+        }
+        RichLog:focus {
+            background: transparent;
+        }
 
     Command {
-        margin-left: 2;
-        color: green;
+        border: round #ff79c6;
     }

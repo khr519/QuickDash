@@ -10,7 +10,7 @@
 from textual.app import App, ComposeResult
 from textual.color import Gradient
 from textual.containers import HorizontalGroup, VerticalGroup
-from textual.widgets import Digits, Label, ProgressBar, RichLog, TabbedContent
+from textual.widgets import Digits, Label, ProgressBar, RichLog, TabbedContent, Sparkline
 from textual.reactive import reactive
 
 import psutil
@@ -35,6 +35,19 @@ gradient = Gradient.from_colors(
     "#aa3355",
     "#881177",
 )
+
+class Buffer:
+    def __init__(self, size:int):
+        self.size = size
+        self.buffer = [0] * size
+        self.pointer = 0
+    
+    def add(self, item):
+        self.buffer[self.pointer] = item
+        self.pointer = (self.pointer+1) % self.size
+    
+    def get(self):
+        return self.buffer[self.pointer:]+self.buffer[:self.pointer]
 
 # Main window
 class QuickDash(App):
@@ -79,9 +92,10 @@ class Bar(HorizontalGroup):
 class Ram(VerticalGroup):
     
     def on_mount(self):
+        self.update_content()
         self.set_interval(2, self.update_content)
     
-    async def update_content(self):
+    def update_content(self):
         ram = psutil.virtual_memory()
 
         usage_label = self.query_one(Digits)
@@ -102,9 +116,10 @@ class Disk(VerticalGroup):
         self.path = path
 
     def on_mount(self):
+        self.update_content()
         self.set_interval(10, self.update_content)
     
-    async def update_content(self):
+    def update_content(self):
         disk = psutil.disk_usage(self.path)
 
         usage_label = self.query_one(Digits)
@@ -122,12 +137,16 @@ class Disk(VerticalGroup):
 class Cpu(VerticalGroup):
 
     def on_mount(self):
+        self.buffer = Buffer(19)
+        self.update_content()
         self.set_interval(2, self.update_content)
     
-    async def update_content(self):
+    def update_content(self):
         usage = psutil.cpu_percent(interval=0.1, percpu=False) # TODO: per core later
         freq = psutil.cpu_freq().current
         temps = psutil.sensors_temperatures()
+
+        self.buffer.add(usage)
 
         usage_label = self.query_one(Digits)
         usage_label.update(f"{usage:.1f}%")
@@ -138,8 +157,11 @@ class Cpu(VerticalGroup):
         temp_label = self.query_one("#cpu-temp", Label)
         temp_label.update(f"{temps['coretemp'][0].current:.1f}°C")
 
-        usage_bar = self.query_one(ProgressBar)
-        usage_bar.update(total=100, progress=usage)
+        # usage_bar = self.query_one(ProgressBar)
+        # usage_bar.update(total=100, progress=usage)
+
+        usage_graph = self.query_one(Sparkline)
+        usage_graph.data=self.buffer.get()
     
     def compose(self) -> ComposeResult:
         yield Label("CPU")
@@ -150,7 +172,8 @@ class Cpu(VerticalGroup):
                 Label(id="cpu-temp"),
             ),
         )
-        yield ProgressBar(gradient=gradient)
+        # yield ProgressBar(gradient=gradient)
+        yield Sparkline(max_color="#cc6666", min_color="#eedd00")
 
 # Customizable widget
 class Custom(VerticalGroup):
@@ -211,18 +234,23 @@ class Command(Label):
         self.load()
 
     def on_mount(self):
-        if not self.exec: return
-        self.set_interval(5, self.update_content)
+        self.run_worker(self.update_content(), exclusive=True)
+        self.set_interval(5, lambda: self.run_worker(self.update_content(), exclusive=True))
         self.watch(self.app, "settings", self.load)
     
     def load(self):
         setting = self.app.settings["tabs"][self.parent_name]
         self.exec = setting.get("command", {}).get("exec", None)
-        if self.exec and self.parent_container:
+        if not self.exec:
+            self.display = False
+            return
+        self.display = True
+        if self.parent_container:
             self.exec = f"docker exec {self.parent_container} {self.exec}"
         self.parse = setting.get("command", {}).get("parse", None)
     
     async def update_content(self):
+        if not self.exec: return
         proc = await asyncio.create_subprocess_shell(
             self.exec,
             stdout=asyncio.subprocess.PIPE,
