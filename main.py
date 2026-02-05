@@ -178,7 +178,7 @@ class Custom(VerticalGroup):
                 self.log_command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
-                limit=1024*1024,
+                limit=10*1024*1024,
             )
         elif self.container:
             proc = await asyncio.create_subprocess_shell(

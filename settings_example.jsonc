@@ -10,12 +10,13 @@
         }
     ],
     "tabs" : {
+        /*
         "Minecraft" : {
             "container" : "minecraft-mc-1", // If using docker, specify the container name here.
 
             "command" : { // This is a Label that shows a custom command output.
                 "exec" : "rcon-cli list", // This will execute "docker exec minecraft-mc-1 rcon-cli list" (since the container is specified)
-                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]'}" // python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
+                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]}'" // python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
             },
 
             "log" : { // This is the log viewer configuration. (since the docker container is specified, no log command is needed. (although, you can use a different command even when using docker.))
@@ -30,6 +31,7 @@
                 "parse" : "json.loads(line)['msg']"
             }
         },
+        */
 
         "Empty example" : {
             // No container or log command specified. This will show an error message in the log viewer.
@@ -39,6 +41,13 @@
             "command" : {
                 "exec" : "date",
                 "parse" : "f'The current date and time is: {output}'"
+            }
+        },
+
+        "SysLog" : { // A tab with just a log viewer (command will tail the syslog)
+            "log" : {
+                "command" : "tail -f /var/log/README",
+                "ignore" : ["CRON"]
             }
         }
     }
