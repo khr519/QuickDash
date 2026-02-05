@@ -165,7 +165,7 @@ class Custom(VerticalGroup):
     
     def load(self):
         setting = self.app.settings["tabs"][self.name]
-        self.container = setting["container"]
+        self.container = setting.get("container", None)
         self.log_ignore = setting.get("log", {}).get("ignore", [])
         self.log_command = setting.get("log", {}).get("command", None)
         self.log_parse = setting.get("log", {}).get("parse", "line")
@@ -178,17 +178,18 @@ class Custom(VerticalGroup):
                 self.log_command,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
+                limit=1024*1024,
             )
-        else:
+        elif self.container:
             proc = await asyncio.create_subprocess_shell(
-                f"docker logs -f -n 200 {self.container}",
+                f"docker logs -f {self.container}",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
+        else:
+            log.write(":(\nNo log command or docker container")
         try:
-            while True:
-                line = await proc.stdout.readline()
-                if not line: break
+            while line := await proc.stdout.readline():
                 line = line.decode().strip()
                 if self.log_parse: line = eval(self.log_parse)
                 if any(ignore in line for ignore in self.log_ignore): continue
@@ -198,10 +199,7 @@ class Custom(VerticalGroup):
             raise
     
     def compose(self) -> ComposeResult:
-        yield HorizontalGroup(
-            Label(self.name),
-            Command(self.name, self.container),
-        )
+        yield Command(self.name, self.container)
         yield RichLog()
 
 class Command(Label):
@@ -219,11 +217,13 @@ class Command(Label):
     def load(self):
         setting = self.app.settings["tabs"][self.parent_name]
         self.exec = setting.get("command", {}).get("exec", None)
+        if self.exec and self.parent_container:
+            self.exec = f"docker exec {self.parent_container} {self.exec}"
         self.parse = setting.get("command", {}).get("parse", None)
     
     async def update_content(self):
         proc = await asyncio.create_subprocess_shell(
-            f"docker exec {self.parent_container} {self.exec}",
+            self.exec,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.STDOUT,
         )

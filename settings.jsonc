@@ -40,10 +40,8 @@
         },
 
         "Nextcloud" : {
-            "container" : "actually this isnt needed here",
-
             "log" : {
-                "command" : "docker exec nextcloud-aio-nextcloud tail data/nextcloud.log",
+                "command" : "docker exec nextcloud-aio-nextcloud tail -f data/nextcloud.log",
                 "parse" : "json.loads(line)['message']"
             }
 
