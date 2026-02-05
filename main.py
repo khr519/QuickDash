@@ -188,6 +188,7 @@ class Custom(VerticalGroup):
             )
         else:
             log.write(":(\nNo log command or docker container")
+            return
         try:
             while line := await proc.stdout.readline():
                 line = line.decode().strip()

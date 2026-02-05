@@ -15,7 +15,7 @@
 
             "command" : { // This is a Label that shows a custom command output.
                 "exec" : "rcon-cli list", // This will execute "docker exec minecraft-mc-1 rcon-cli list" (since the container is specified)
-                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]}" // python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
+                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]'}" // python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
             },
 
             "log" : { // This is the log viewer configuration. (since the docker container is specified, no log command is needed. (although, you can use a different command even when using docker.))
