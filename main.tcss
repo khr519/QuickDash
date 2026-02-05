@@ -103,6 +103,12 @@ QuickDash TabbedContent {
         RichLog {
             border: round #6272a4;
             scrollbar-background: transparent;
+            scrollbar-background-active: transparent;
+            scrollbar-background-hover: transparent;
+            scrollbar-corner-color: #1a1b26;
+            scrollbar-color: #6272a4;
+            scrollbar-color-active: #6272a4;
+            scrollbar-color-hover: #6272a4;
         }
         RichLog:focus {
             background: transparent;

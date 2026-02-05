@@ -52,7 +52,7 @@ class Buffer:
 # Main window
 class QuickDash(App):
     CSS_PATH = "main.tcss"
-    settings = reactive({})
+    settings = reactive({}, recompose=True)
 
     def __init__(self):
         super().__init__()
@@ -184,7 +184,6 @@ class Custom(VerticalGroup):
     
     def on_mount(self):
         self.run_worker(self.stream_logs(), exclusive=True)
-        self.watch(self.app, "settings", self.load)
     
     def load(self):
         setting = self.app.settings["tabs"][self.name]
@@ -234,9 +233,9 @@ class Command(Label):
         self.load()
 
     def on_mount(self):
+        if not self.exec: return
         self.run_worker(self.update_content(), exclusive=True)
         self.set_interval(5, lambda: self.run_worker(self.update_content(), exclusive=True))
-        self.watch(self.app, "settings", self.load)
     
     def load(self):
         setting = self.app.settings["tabs"][self.parent_name]
@@ -250,7 +249,6 @@ class Command(Label):
         self.parse = setting.get("command", {}).get("parse", None)
     
     async def update_content(self):
-        if not self.exec: return
         proc = await asyncio.create_subprocess_shell(
             self.exec,
             stdout=asyncio.subprocess.PIPE,

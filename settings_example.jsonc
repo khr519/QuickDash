@@ -6,7 +6,7 @@
         },
         {
             "name" : "HDD",
-            "path" : "/data"
+            "path" : "/home"
         }
     ],
     "tabs" : {
@@ -44,9 +44,9 @@
             }
         },
 
-        "SysLog" : { // A tab with just a log viewer (command will tail the syslog)
+        "Journalctl" : { // A tab with just a log viewer (command will tail the syslog)
             "log" : {
-                "command" : "tail -f /var/log/README",
+                "command" : "Journalctl -f",
                 "ignore" : ["CRON"]
             }
         }
