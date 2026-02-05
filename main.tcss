@@ -62,7 +62,7 @@ Bar {
                 width: 8;
             }
 
-QuickDash HorizontalGroup {
+QuickDash TabbedContent {
     height: 1fr;
     width: 100%;
 }

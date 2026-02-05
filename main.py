@@ -10,7 +10,7 @@
 from textual.app import App, ComposeResult
 from textual.color import Gradient
 from textual.containers import HorizontalGroup, VerticalGroup
-from textual.widgets import Header, Footer, Button, Digits, Label, Static, ProgressBar, Placeholder, RichLog
+from textual.widgets import Digits, Label, ProgressBar, RichLog, TabbedContent
 from textual.reactive import reactive
 
 import psutil
@@ -62,21 +62,19 @@ class QuickDash(App):
         self.settings = JsoncParser.parse_file("settings.jsonc")
 
     def compose(self) -> ComposeResult:
-        #yield Header()
         yield Bar()
-        yield HorizontalGroup(
-            *[Custom(p) for p in (self.settings["custom"]).keys()]
-        )
-        #yield Footer()
+        with TabbedContent(*(tabs:=self.settings["tabs"].keys())):
+            for tab in tabs: yield Custom(tab)
 
 # Top bar
 class Bar(HorizontalGroup):
     def compose(self) -> ComposeResult:
         yield Ram()
-        yield HorizontalGroup(
-            *[Disk(*map(lambda i:i[1],p.items())) for p in (self.app.settings["disks"])]
-        )
         yield Cpu()
+        yield HorizontalGroup(
+            *[Disk(*map(lambda i:i[1],p.items())) for p in (self.app.settings["disks"])],
+            id="disks"
+        )
 
 class Ram(VerticalGroup):
     
@@ -166,7 +164,7 @@ class Custom(VerticalGroup):
         self.watch(self.app, "settings", self.load)
     
     def load(self):
-        setting = self.app.settings["custom"][self.name]
+        setting = self.app.settings["tabs"][self.name]
         self.container = setting["container"]
         self.log_ignore = setting.get("log", {}).get("ignore", [])
         self.log_command = setting.get("log", {}).get("command", None)
@@ -183,12 +181,14 @@ class Custom(VerticalGroup):
             )
         else:
             proc = await asyncio.create_subprocess_shell(
-                f"docker logs -f {self.container}",
+                f"docker logs -f -n 200 {self.container}",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.STDOUT,
             )
         try:
-            async for line in proc.stdout:
+            while True:
+                line = await proc.stdout.readline()
+                if not line: break
                 line = line.decode().strip()
                 if self.log_parse: line = eval(self.log_parse)
                 if any(ignore in line for ignore in self.log_ignore): continue
@@ -217,7 +217,7 @@ class Command(Label):
         self.watch(self.app, "settings", self.load)
     
     def load(self):
-        setting = self.app.settings["custom"][self.parent_name]
+        setting = self.app.settings["tabs"][self.parent_name]
         self.exec = setting.get("command", {}).get("exec", None)
         self.parse = setting.get("command", {}).get("parse", None)
     

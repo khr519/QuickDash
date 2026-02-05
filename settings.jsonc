@@ -9,7 +9,7 @@
             "path" : "/data"
         }
     ],
-    "custom" : {
+    "tabs" : {
         "Minecraft" : {
             "container" : "minecraft-mc-1",
 
@@ -32,7 +32,11 @@
         },
 
         "Obsidian LiveSync" : {
-            "container" : "couchdb-ols"
+            "container" : "couchdb-ols",
+
+            "log" : {
+                "ignore" : ["192.168.45.1"]
+            }
         },
 
         "Nextcloud" : {
