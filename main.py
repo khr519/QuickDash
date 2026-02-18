@@ -1,11 +1,4 @@
-# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-#          ______        _    ____ ______           ____        ----- *
-# ---- *    / __ \__  __(_)____/ /__/ __ \____ ______/ /_
-#          / / / / / / / / ___/ //_/ / / / __ `/ ___/ __ \   ---- *
-#-- *     / / / / /_/ / / /__/ ,< / /_/ / /_/ (__  ) / / /_
-#         \___\_\__,_/_/\___/_/|_/_____/\__,_/____/_/ /___// v1.0 //-- *
-#     -------- *
-# >>>>>>>>>>>   TUI Dashbord with on the fly configs!   >>>>>>>>>>>>>>>>>>
+# QuickDash v1.0
 
 from textual.app import App, ComposeResult
 from textual.color import Gradient
@@ -15,9 +8,8 @@ from textual.reactive import reactive
 
 import psutil
 import asyncio
-import json
-from jsonc_parser.parser import JsoncParser
-import os
+import json # <-- unused in the main code, but the user might use this in `log.parse` for logs in json.
+import tomllib
 
 from watchfiles import awatch
 
@@ -63,16 +55,16 @@ class QuickDash(App):
     
     async def live_load(self):
         async for changes in awatch("."):
-            # ok turns out editors sometimes delete and recreate files,
-            # instead of editing...
-            # so i think we have to watch the entire directory :(
+            # editors sometimes delete and recreate files, instead of "editing"...
+            # so we have to watch the entire directory :(
             for _, path in changes:
-                if path.endswith("settings.jsonc"):
+                if path.endswith("settings.toml"):
                     self.load_settings()
                     break
 
     def load_settings(self):
-        self.settings = JsoncParser.parse_file("settings.jsonc")
+        with open("settings.toml", "rb") as f:
+            self.settings = tomllib.load(f)
 
     def compose(self) -> ComposeResult:
         yield Bar()

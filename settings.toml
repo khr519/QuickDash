@@ -1,0 +1,51 @@
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+#           ______        _    ____ ______           ____        ----- *
+#  ---- *    / __ \__  __(_)____/ /__/ __ \____ ______/ /_
+#           / / / / / / / / ___/ //_/ / / / __ `/ ___/ __ \   ---- *
+# -- *     / / / / /_/ / / /__/ ,< / /_/ / /_/ (__  ) / / /_
+#          \___\_\__,_/_/\___/_/|_/_____/\__,_/____/_/ /___// v1.0 //-- *
+#      -------- *
+# >>>>>>>>>>>>>  TUI Dashbord with on the fly configs!  >>>>>>>>>>>>>>>>>>>
+
+
+# This is an example configuration file for QuickDash.
+# Edit this file to customize your setup.
+# For further information, Look at README.md
+
+
+# 1. Disk Configuration
+# Define names and paths for disks to monitor.
+
+[[disks]]
+name = "ROOT"
+path = "/"
+
+[[disks]]
+name = "HOME"
+path = "/home"
+
+
+# 2. Tab Configuration
+# This is where tabs containing log viewers and command outputs are defined.
+#
+# syntax:
+# [tabs."Tab Name"]
+# container = "container name"
+# command = { exec = "command to run", parse = "parsing code" }
+# log = { command = "log command", ignore = ["strings to ignore"], parse = "parsing code" }
+
+[tabs."README"]
+command.exec = "echo 'Welcome to QuickDash!'" # which is the same as `command = { exec = "echo 'Welcome to QuickDash!'"}`
+log.command = "cat greeter.txt" # which is the same as `log = { command = "cat greeter.txt" }`
+
+[tabs."Empty example"]
+# No container or log command specified. This will only display the tab name and show an error message in the log viewer.
+
+[tabs."Just a Command"]
+command = { exec = "date", parse = "f'The current date and time is: {output}'" }
+# A tab with a parsed command output. No log viewer.
+
+[tabs."Journalctl"]
+log = { command = "journalctl -f", ignore = ["CRON"] }
+# A tab with just a log viewer for the system journal.
+# It will ignore lines containing "CRON".
