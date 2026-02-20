@@ -46,6 +46,6 @@ command = { exec = "date", parse = "f'The current date and time is: {output}'" }
 # A tab with a parsed command output. No log viewer.
 
 [tabs."Journalctl"]
-log = { command = "journalctl -f", ignore = ["CRON"] }
+log = { command = "journalctl -f", ignore = ["CRON","ACPI"], parse = "f'[System Journal] ==> {line}'" }
 # A tab with just a log viewer for the system journal.
-# It will ignore lines containing "CRON".
+# It will ignore lines containing "CRON" or "ACPI".

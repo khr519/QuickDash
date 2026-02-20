@@ -1,37 +1,23 @@
+// This is an example configuration file
+
 {
     "disks" : [
         {
-            "name" : "SSD",
+            "name" : "ROOT",
             "path" : "/"
         },
         {
-            "name" : "HDD",
+            "name" : "HOME",
             "path" : "/home"
         }
     ],
+
     "tabs" : {
-        /*
-        "Minecraft" : {
-            "container" : "minecraft-mc-1", // If using docker, specify the container name here.
-
-            "command" : { // This is a Label that shows a custom command output.
-                "exec" : "rcon-cli list", // This will execute "docker exec minecraft-mc-1 rcon-cli list" (since the container is specified)
-                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]}'" // python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
-            },
-
-            "log" : { // This is the log viewer configuration. (since the docker container is specified, no log command is needed. (although, you can use a different command even when using docker.))
-                "ignore" : ["RCON"], // List of strings to ignore. (in this case, any lines containing "RCON" will be ignored)
-                "parse" : "f'from minecraft: {line}'" // python code snippet which will be evaluated using eval(). the {line} variable contains the log line.
-            }
-        },
-
-        "Caddy" : {
+        "README" : {
             "log" : {
-                "command" : "docker logs -f caddy", // this time, no container specified. So the full command is needed.
-                "parse" : "json.loads(line)['msg']"
+                "command" : "echo 'Welcome to the application! This is an example configuration file. Please edit settings.jsonc to customize your setup.'"
             }
         },
-        */
 
         "Empty example" : {
             // No container or log command specified. This will show an error message in the log viewer.
@@ -50,5 +36,39 @@
                 "ignore" : ["CRON"]
             }
         }
+
+
+        // Below are more examples. They require Docker and specific containers to work, so they are commented out.
+
+        /*
+        "Minecraft" : {
+            "container" : "minecraft-mc-1",
+            //             ^^^ If using docker, specify the container name here.
+
+            "command" : {
+            // This is a Label that shows a custom command output.
+                "exec" : "rcon-cli list",
+                //       ^^^ This will execute "docker exec minecraft-mc-1 rcon-cli list" (since the container is specified)
+                "parse" : "f'online: {output.split(' ')[2]}/{output.split(' ')[7]}'"
+                //        ^^^ python code snippet which will be evaluated using eval(). the {output} variable contains the command output.
+            },
+
+            "log" : {
+            // This is the log viewer configuration. (since the docker container is specified, no log command is needed. (although, you can use a different command even when using docker.))
+                "ignore" : ["RCON"],
+                //         ^^^ List of strings to ignore. (in this case, any lines containing "RCON" will be ignored)
+                "parse" : "f'from minecraft: {line}'"
+                //        ^^^ python code snippet which will be evaluated using eval(). the {line} variable contains one line from the log.
+            }
+        },
+
+        "Caddy" : {
+            "log" : {
+                "command" : "docker logs -f caddy",
+                //          ^^^ this time, no container specified. So the full command is needed.
+                "parse" : "json.loads(line)['msg']"
+            }
+        }
+        */
     }
 }
