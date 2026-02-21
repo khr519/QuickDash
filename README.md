@@ -33,6 +33,7 @@ The `disks` section is where the disk usage shown in the top bar is configured.
 - `name` is the displayed name of each disk.
 - `path` is the path to check disk usage
 ## tabs:
+**Note: The python code snippet inside`parse` is executed using `eval()`.**
 ```toml
 [tabs."Tab Name"]
 container = "container name"
