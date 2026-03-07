@@ -1,9 +1,17 @@
 
 <img width="1803" height="483" alt="QuickDash Logo" src="https://raw.githubusercontent.com/khr519/QuickDash/main/QuickDash.png" />
 
-QuickDash is a customizable TUI dashboard.
-- It can be used over ssh.
-- The configs are live loaded!
+# QuickDash is a customizable TUI dashboard.
+*A simple dashboard I made for my homelab.*
+### Features
+- View RAM, CPU, and Disk usage
+- Customizable tabs with log streaming and custom command output
+
+    #### TUI
+- Install it on your server
+- Since it's TUI, you can access from anywhere via SSH
+    #### Live loaded configs
+- QuickDash uses `watchfiles` to see changes in the config file, and applies them instantly.
 ## Screenshots
 <img width="1187" height="721" alt="First Startup" src="https://github.com/user-attachments/assets/df23223e-6dee-421f-9cfc-7f7d02f9bef1" />
 <img width="1148" height="1401" alt="Running on my Server" src="https://github.com/user-attachments/assets/ad172787-5dbf-4931-a76c-27be13f829ec" />

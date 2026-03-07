@@ -47,7 +47,7 @@ setup_alias() {
 }
 
 echo "Install QuickDash in $WDIR ? [Y/n]"
-read -n 1 -r
+read -n 1 -r < /dev/tty
 echo
 if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Installing ..."
@@ -58,7 +58,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     pip install -r requirements.txt
 
     echo "Do you want to create an alias for quickdash ? [Y/n]"
-    read -n 1 -r
+    read -n 1 -r < /dev/tty
     echo
     if [[ $REPLY =~ ^[Yy]$ ]]; then
         setup_alias "$WDIR/QuickDash"
