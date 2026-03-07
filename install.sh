@@ -49,7 +49,7 @@ setup_alias() {
 echo "Install QuickDash in $WDIR ? [Y/n]"
 read -n 1 -r < /dev/tty
 echo
-if [[ $REPLY =~ ^[Yy]$ ]]; then
+if [[ $REPLY =~ ^[Yy]?$ ]]; then
     echo "Installing ..."
     git clone https://github.com/khr519/QuickDash.git
     cd QuickDash
@@ -60,7 +60,7 @@ if [[ $REPLY =~ ^[Yy]$ ]]; then
     echo "Do you want to create an alias for quickdash ? [Y/n]"
     read -n 1 -r < /dev/tty
     echo
-    if [[ $REPLY =~ ^[Yy]$ ]]; then
+    if [[ $REPLY =~ ^[Yy]?$ ]]; then
         setup_alias "$WDIR/QuickDash"
     fi
     
