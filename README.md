@@ -9,7 +9,10 @@ placeholder
 # Installation
 pipx, uvx (TODO)
 
-Installation Script (TODO)
+Installation Script
+```bash
+curl -s https://raw.githubusercontent.com/khr519/QuickDash/main/install.sh | bash
+```
 
 *OR, clone the repo, install deps, and run main.py!*
 # Configuration

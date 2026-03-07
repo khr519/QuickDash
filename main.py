@@ -147,7 +147,10 @@ class Cpu(VerticalGroup):
         freq_label.update(f"{freq:.0f}MHz")
 
         temp_label = self.query_one("#cpu-temp", Label)
-        temp_label.update(f"{temps['coretemp'][0].current:.1f}°C")
+        try:
+            temp_label.update(f"{temps['coretemp'][0].current:.1f}°C")
+        except:
+            temp_label.update("N/A °C")
 
         # usage_bar = self.query_one(ProgressBar)
         # usage_bar.update(total=100, progress=usage)
