@@ -16,6 +16,11 @@
 <img width="1187" height="721" alt="First Startup" src="https://github.com/user-attachments/assets/df23223e-6dee-421f-9cfc-7f7d02f9bef1" />
 <img width="1148" height="1401" alt="Running on my Server" src="https://github.com/user-attachments/assets/ad172787-5dbf-4931-a76c-27be13f829ec" />
 
+#### Video
+https://github.com/user-attachments/assets/0ff26d1e-8211-46c8-b7dd-99955c43c115
+
+
+
 
 # Installation
 pipx, uvx (TODO)
