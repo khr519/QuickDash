@@ -56,6 +56,7 @@ if [[ $REPLY =~ ^[Yy]?$ ]]; then
     python3 -m venv venv
     source venv/bin/activate
     pip install -r requirements.txt
+    chmod +x quickdash.sh
 
     echo "Do you want to create an alias for quickdash ? [Y/n]"
     read -n 1 -r < /dev/tty
